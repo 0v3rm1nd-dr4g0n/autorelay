@@ -1,0 +1,5 @@
+python_libnmap >= 0.6.3
+netifaces >= 0.10.4
+paramiko >= 1.15.3
+scp >= 0.10.2
+sshtunnel >= 0.0.7
