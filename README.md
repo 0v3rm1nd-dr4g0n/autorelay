@@ -7,11 +7,11 @@ Automatically performs the SMB relay attack either locally or on a remote device
 
 #####Local
 
-* python autoresp.py -x local-network.xml -i eth0
+* python autorelay.py -x local-network.xml -i eth0
 
 #####Remote
 
-* python autoresp.py -x remote-network.xml -i eth0 -r 95.34.53.243 
+* python autorelay.py -x remote-network.xml -i eth0 -r 95.34.53.243 
 
 ---
 
