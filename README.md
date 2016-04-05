@@ -1,6 +1,6 @@
 # Autorelay
 
-Automatically performs the SMB relay attack either locally or on a remote device. Uses Responder to poison, Metasploit for HTTP NTLM relay (rather than just SMB relay), and Snarf for the MITM'ing. When using locally, only requires an interface and an nmap XML file of the target network to determine SMB hosts. When used for SMB relaying on a jumpbox, requires the IP address of the jumpbox.
+Automatically performs the SMB relay attack either locally or on a remote device. Uses Responder to poison, Metasploit for HTTP NTLM relay (rather than just SMB relay), and Snarf for the MITM'ing. When using locally, only requires an interface and an nmap XML file or a list of IPs on the target network to determine SMB hosts. When used for SMB relaying on a jumpbox, requires the IP address of the jumpbox.
 
 
 ## Usage
@@ -9,9 +9,13 @@ Automatically performs the SMB relay attack either locally or on a remote device
 
 * sudo ./autorelay.py -x local-network.xml -i eth0
 
+* sudo ./autorelay.py -l ips.txt -i eth0
+
 #####Remote
 
 * sudo ./autorelay.py -x remote-network.xml -i eth0 -r 95.34.53.243 
+
+* sudo ./autorelay.py -l ips.txt -i eth0 -r 95.34.53.243 
 
 ---
 
