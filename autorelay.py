@@ -161,7 +161,7 @@ def cleanup(pids, home_dir):
     '''
     print '[*] Cleaning up...'
     for p in pids:
-        #print '[*] Killing {}'.format(p[1])
+        print '[*] Killing {}'.format(p[1])
         os.system('kill {}'.format(p[0]))
 
     cmds = ["iptables -t nat -F",
@@ -172,7 +172,7 @@ def cleanup(pids, home_dir):
     resp_conf = '{}Responder/Responder.conf'.format(home_dir)
     move(orig_conf, resp_conf)
     os.remove('copy-Responder.conf')
-    print '      \_ Done'
+    print '[*] Done'
 
 def confirm(pids):
     '''
