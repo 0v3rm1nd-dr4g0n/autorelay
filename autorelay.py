@@ -472,6 +472,7 @@ def local_main(args):
 
     # Run Snarf
     cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f smb_hosts.txt {}'.format(home_dir, ip)
+    time.sleep(1) # If this isn't here the PID of the snarf screen is -3 compared to ps faux??
     out, err, snarf_pid = run_cmd(cmd)
 
     # Run Snarf iptables cmd
