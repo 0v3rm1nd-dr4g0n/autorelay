@@ -353,20 +353,20 @@ def remote_cleanup(ssh, scp, forw_server, home_dir):
 def remote_confirm(ssh):
     err = False
     print '\n[*] Confirming all tools are running...'
-    stdin, stdout, stderr = ssh.exec_command("ps aux | grep -i 'SCREEN -S snarf -dm nodejs \
-/opt/snarf/snarf.js -f /opt/snarf/smb_hosts.txt' | grep -v grep")
+    stdin, stdout, stderr = ssh.exec_command("ps aux | grep -i 'SCREEN -S snarf -dm nodejs' \
+| grep -v grep")
     if 'screen -s snarf -dm nodejs' not in stdout.read().lower():
         print '[-] Error: Snarf not running on the remote device'
         err = True
 
     stdin, stdout, stderr = ssh.exec_command("ps aux | grep -i 'SCREEN -S http-relay -dm msfconsole \
--L -r /opt/http_relay.rc' | grep -v grep")
+-L -r' | grep -v grep")
     if 'screen -s http-relay -dm msfconsole' not in stdout.read().lower():
         print '[-] Error: MSF http_relay not running on the remote device'
         err = True
 
     stdin, stdout, stderr = ssh.exec_command("ps aux | grep -i 'SCREEN -S relay-responder -dm \
-python /opt/Responder/Responder.py -I eth0 -r -d --wpad' | grep -v grep")
+python' | grep -v grep")
     if 'screen -s relay-responder -dm python' not in stdout.read().lower():
         print '[-] Error: Responder not running on the remote device'
         err = True
