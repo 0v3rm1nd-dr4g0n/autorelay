@@ -401,7 +401,7 @@ def remote_main(args):
     remote_path = '{}snarf/{}'.format(home_dir, hostfile)
     try:
         scp.put(local_path, remote_path)
-    except scp.SCPException:
+    except SCPException:
         sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
 
     # Print vars
