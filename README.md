@@ -9,13 +9,13 @@ Automatically performs the SMB relay attack either locally or on a remote device
 
 * sudo ./autorelay.py -x local-network.xml -i eth0
 
-* sudo ./autorelay.py -l ips.txt -i eth0
+* sudo ./autorelay.py -l ips.txt -i eth0     ** -l option needs some wee fixing **
 
 #####Remote
 
 * sudo ./autorelay.py -x remote-network.xml -i eth0 -r 95.34.53.243 
 
-* sudo ./autorelay.py -l ips.txt -i eth0 -r 95.34.53.243 
+* sudo ./autorelay.py -l ips.txt -i eth0 -r 95.34.53.243   ** -l option needs some wee fixing **
 
 ---
 
