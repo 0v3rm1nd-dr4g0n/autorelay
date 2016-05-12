@@ -22,8 +22,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-x", "--nmapxml", help="Location of nmap XML file")
     parser.add_argument("-f", "--home-dir", default='/opt/', help="The folder to install the various tools to; e.g. -d '/opt/'")
-    parser.add_argument("-i", "--interface", help="The interface that Responder and Snarf will start use")
-    parser.add_argument("-r", "--remote", help="The jumpbox IP address")
+    parser.add_argument("-i", "--interface", help="The interface that Responder and Snarf will use")
+    parser.add_argument("-r", "--remote", help="The jumpbox IP address (this will be the local VPN IP if you are connecting through a VPN, not the main network interface IP)")
     parser.add_argument("-p", "--port", type=int, default=22, help="The jumpbox SSH port")
     parser.add_argument("-l", "--list-ips", help="List of hosts Snarf should poison")
     return parser.parse_args()
@@ -50,7 +50,7 @@ def install_checker(err, proj_name):
         if 'Cloning into' not in err:
             sys.exit('[-] Failed to install '+proj_name+':'+'\n\n'+err)
 
-def get_smb_hosts(report):
+def create_smb_hostfile(report, home_dir):
     '''
     Read the nmap XML and parse out SMB clients
     '''
@@ -62,10 +62,10 @@ def get_smb_hosts(report):
                 if s.port == 445 and s.state == 'open':
                     smb_hosts.append(host.address)
 
-    with open('smb_hosts.txt', 'w') as smb:
+    with open('{}snarf/smb_hosts.txt'.format(home_dir), 'w') as smb:
         for h in smb_hosts:
             smb.write(h+'\n')
-    return 'smb_hosts.txt'
+    return '{}snarf/smb_hosts.txt'
 
 def get_nodejs():
     '''
@@ -112,7 +112,7 @@ def start_msf_http_relay(ip, home_dir):
         f.write(options)
 
     # Start MSF on jumpbox
-    # MUST 'msfconsole -L' or else screen exits as soon as it 
+    # MUST 'msfconsole -L' or else screen exits as soon as it
     # reaches end of script
     cmd = 'screen -S http-relay -dm msfconsole -L -r {}http_relay.rc'.format(home_dir)
     out, err, msf_pid = run_cmd(cmd)
@@ -456,7 +456,7 @@ def remote_main(args):
 def get_SMB_hosts(args):
     if args.nmapxml:
         report = NmapParser.parse_fromfile(args.nmapxml)
-        hostfile = get_smb_hosts(report)
+        hostfile = create_smb_hostfile(report, args.home_dir)
     elif args.list_ips:
         hostfile = args.list_ips
     return hostfile
