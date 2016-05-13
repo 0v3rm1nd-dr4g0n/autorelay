@@ -60,12 +60,13 @@ def create_smb_hostfile(report, home_dir):
         if host.is_up():
             for s in host.services:
                 if s.port == 445 and s.state == 'open':
-                    print ip
                     smb_hosts.append(host.address)
 
     with open('smb_hosts.txt'.format(home_dir), 'w') as smb:
         for h in smb_hosts:
             smb.write(h+'\n')
+
+    print '[+] {} SMB hosts found from Nmap scan'.format(len(smb_hosts))
     return 'smb_hosts.txt'
 
 def get_nodejs():
